@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operaciones con Señales - Discretas y Continuas</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --accent: #f59e0b;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            position: relative;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+            position: relative;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            background: var(--bg-card);
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .tab {
+            padding: 1rem 2.5rem;
+            cursor: pointer;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        .tab:hover { color: var(--text); background: rgba(99,102,241,0.1); }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(99,102,241,0.05);
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Signal selector */
+        .signal-selector {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .signal-selector h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        .signal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+        .signal-option {
+            padding: 0.6rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .signal-option:hover { border-color: var(--primary); background: rgba(99,102,241,0.1); }
+        .signal-option.selected { border-color: var(--primary); background: rgba(99,102,241,0.2); color: var(--primary); }
+
+        /* Operation cards */
+        .op-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            transition: border-color 0.3s;
+        }
+        .op-card:hover { border-color: var(--primary); }
+        .op-card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .op-card h2 .icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .op-card .math-box {
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary);
+            font-size: 1.1rem;
+            overflow-x: auto;
+        }
+        .op-card .description {
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .control-group {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 0.8rem 1rem;
+        }
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+        .control-group .value-display {
+            text-align: right;
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+        .control-group select {
+            width: 100%;
+            padding: 0.4rem;
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        /* Plot containers */
+        .plot-container {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+        .plots-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .plot-label {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: var(--accent);
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 768px) {
+            .plots-row { grid-template-columns: 1fr; }
+            .controls { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.5rem; }
+            .tab { padding: 0.8rem 1.2rem; font-size: 0.9rem; }
+        }
+
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-cont { background: rgba(6,182,212,0.2); color: var(--secondary); }
+        .badge-disc { background: rgba(245,158,11,0.2); color: var(--accent); }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>⚡ Operaciones con Señales</h1>
+    <p>Herramienta interactiva para señales continuas y discretas</p>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('continuas')">📈 Señales Continuas</div>
+    <div class="tab" onclick="switchTab('discretas')">📊 Señales Discretas</div>
+</div>
+
+<div class="container">
+    <!-- ==================== SEÑALES CONTINUAS ==================== -->
+    <div id="tab-continuas" class="tab-content active">
+
+        <!-- Señal base selectors -->
+        <div class="signal-selector">
+            <h3>🔧 Selecciona las señales de entrada</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                <div>
+                    <label style="color:var(--text-muted);font-size:0.9rem;margin-bottom:0.5rem;display:block;">Señal x₁(t):</label>
+                    <div class="signal-grid" id="sig1-cont-selector">
+                        <div class="signal-option selected" onclick="selectSignalCont(1,'sin')">sen(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(1,'cos')">cos(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(1,'exp')">e^(-t)·u(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(1,'rect')">rect(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(1,'tri')">tri(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(1,'step')">u(t)</div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color:var(--text-muted);font-size:0.9rem;margin-bottom:0.5rem;display:block;">Señal x₂(t):</label>
+                    <div class="signal-grid" id="sig2-cont-selector">
+                        <div class="signal-option" onclick="selectSignalCont(2,'sin')">sen(t)</div>
+                        <div class="signal-option selected" onclick="selectSignalCont(2,'cos')">cos(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(2,'exp')">e^(-t)·u(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(2,'rect')">rect(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(2,'tri')">tri(t)</div>
+                        <div class="signal-option" onclick="selectSignalCont(2,'step')">u(t)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. SUMA -->
+        <div class="op-card" id="card-suma-cont">
+            <h2><span class="icon" style="background:rgba(34,197,94,0.2);color:#22c55e;">+</span> Suma de Señales <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">La suma de dos señales se obtiene sumando punto a punto los valores de ambas señales en cada instante de tiempo.</p>
+            <div class="math-box">$$y(t) = x_1(t) + x_2(t)$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud A₁: <span class="value-display" id="val-a1-sum-c">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a1-sum-c" oninput="updateContOp('suma')">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud A₂: <span class="value-display" id="val-a2-sum-c">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a2-sum-c" oninput="updateContOp('suma')">
+                </div>
+                <div class="control-group">
+                    <label>Frecuencia ω₁: <span class="value-display" id="val-w1-sum-c">1.0</span></label>
+                    <input type="range" min="0.5" max="5" step="0.5" value="1" id="w1-sum-c" oninput="updateContOp('suma')">
+                </div>
+                <div class="control-group">
+                    <label>Frecuencia ω₂: <span class="value-display" id="val-w2-sum-c">1.0</span></label>
+                    <input type="range" min="0.5" max="5" step="0.5" value="1" id="w2-sum-c" oninput="updateContOp('suma')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-suma-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = x₁(t) + x₂(t)</div>
+                    <div id="plot-suma-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. RESTA -->
+        <div class="op-card" id="card-resta-cont">
+            <h2><span class="icon" style="background:rgba(239,68,68,0.2);color:#ef4444;">−</span> Resta de Señales <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">La resta de señales se obtiene restando punto a punto los valores de la segunda señal a la primera.</p>
+            <div class="math-box">$$y(t) = x_1(t) - x_2(t)$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud A₁: <span class="value-display" id="val-a1-res-c">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a1-res-c" oninput="updateContOp('resta')">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud A₂: <span class="value-display" id="val-a2-res-c">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a2-res-c" oninput="updateContOp('resta')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-resta-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = x₁(t) − x₂(t)</div>
+                    <div id="plot-resta-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. MULTIPLICACIÓN -->
+        <div class="op-card" id="card-mult-cont">
+            <h2><span class="icon" style="background:rgba(168,85,247,0.2);color:#a855f7;">×</span> Multiplicación de Señales <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">La multiplicación (modulación) de señales produce el producto punto a punto. Es fundamental en modulación AM.</p>
+            <div class="math-box">$$y(t) = x_1(t) \cdot x_2(t)$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud A₁: <span class="value-display" id="val-a1-mul-c">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a1-mul-c" oninput="updateContOp('mult')">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud A₂: <span class="value-display" id="val-a2-mul-c">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a2-mul-c" oninput="updateContOp('mult')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-mult-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = x₁(t) · x₂(t)</div>
+                    <div id="plot-mult-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ESCALAMIENTO EN AMPLITUD -->
+        <div class="op-card" id="card-escala-cont">
+            <h2><span class="icon" style="background:rgba(6,182,212,0.2);color:#06b6d4;">↕</span> Escalamiento en Amplitud <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">Multiplica la señal por una constante, modificando su amplitud sin alterar su forma temporal.</p>
+            <div class="math-box">$$y(t) = A \cdot x(t)$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Factor de Escala A: <span class="value-display" id="val-A-esc-c">2.0</span></label>
+                    <input type="range" min="-3" max="3" step="0.1" value="2" id="A-esc-c" oninput="updateContOp('escala')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x(t)</div>
+                    <div id="plot-escala-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = A·x(t)</div>
+                    <div id="plot-escala-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. DESPLAZAMIENTO TEMPORAL -->
+        <div class="op-card" id="card-desp-cont">
+            <h2><span class="icon" style="background:rgba(245,158,11,0.2);color:#f59e0b;">↔</span> Desplazamiento Temporal <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">Desplaza la señal en el eje del tiempo. Si t₀ > 0 se retrasa (derecha), si t₀ &lt; 0 se adelanta (izquierda).</p>
+            <div class="math-box">$$y(t) = x(t - t_0)$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Desplazamiento t₀: <span class="value-display" id="val-t0-desp-c">2.0</span></label>
+                    <input type="range" min="-5" max="5" step="0.5" value="2" id="t0-desp-c" oninput="updateContOp('desp')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x(t)</div>
+                    <div id="plot-desp-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = x(t − t₀)</div>
+                    <div id="plot-desp-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. REFLEXIÓN TEMPORAL -->
+        <div class="op-card" id="card-ref-cont">
+            <h2><span class="icon" style="background:rgba(236,72,153,0.2);color:#ec4899;">⟷</span> Reflexión Temporal <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">Invierte la señal respecto al eje vertical (t=0), creando una imagen espejo en el tiempo.</p>
+            <div class="math-box">$$y(t) = x(-t)$$</div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x(t)</div>
+                    <div id="plot-ref-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = x(−t)</div>
+                    <div id="plot-ref-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. ESCALAMIENTO TEMPORAL -->
+        <div class="op-card" id="card-tscale-cont">
+            <h2><span class="icon" style="background:rgba(16,185,129,0.2);color:#10b981;">⇔</span> Escalamiento Temporal <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">Comprime (|a|>1) o expande (|a|&lt;1) la señal en el eje del tiempo. Cambia la duración de la señal.</p>
+            <div class="math-box">$$y(t) = x(a \cdot t)$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Factor temporal a: <span class="value-display" id="val-a-tsc-c">2.0</span></label>
+                    <input type="range" min="0.2" max="4" step="0.1" value="2" id="a-tsc-c" oninput="updateContOp('tscale')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x(t)</div>
+                    <div id="plot-tscale-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = x(a·t)</div>
+                    <div id="plot-tscale-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. CONVOLUCIÓN -->
+        <div class="op-card" id="card-conv-cont">
+            <h2><span class="icon" style="background:rgba(99,102,241,0.2);color:#6366f1;">∗</span> Convolución <span class="badge badge-cont">Continua</span></h2>
+            <p class="description">La convolución es la operación fundamental de los sistemas LTI. Describe cómo un sistema transforma una señal de entrada.</p>
+            <div class="math-box">$$y(t) = (x_1 * x_2)(t) = \int_{-\infty}^{\infty} x_1(\tau) \cdot x_2(t - \tau) \, d\tau$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Señal 1:</label>
+                    <select id="conv-sig1" onchange="updateContOp('conv')">
+                        <option value="rect">Pulso Rectangular</option>
+                        <option value="tri">Triangular</option>
+                        <option value="exp">Exponencial e^(-t)u(t)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Señal 2:</label>
+                    <select id="conv-sig2" onchange="updateContOp('conv')">
+                        <option value="rect" selected>Pulso Rectangular</option>
+                        <option value="tri">Triangular</option>
+                        <option value="exp">Exponencial e^(-t)u(t)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Ancho señal 1: <span class="value-display" id="val-w1-conv-c">1.0</span></label>
+                    <input type="range" min="0.5" max="3" step="0.1" value="1" id="w1-conv-c" oninput="updateContOp('conv')">
+                </div>
+                <div class="control-group">
+                    <label>Ancho señal 2: <span class="value-display" id="val-w2-conv-c">1.0</span></label>
+                    <input type="range" min="0.5" max="3" step="0.1" value="1" id="w2-conv-c" oninput="updateContOp('conv')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-conv-cont-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y(t) = (x₁ ∗ x₂)(t)</div>
+                    <div id="plot-conv-cont-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SEÑALES DISCRETAS ==================== -->
+    <div id="tab-discretas" class="tab-content">
+
+        <div class="signal-selector">
+            <h3>🔧 Selecciona las señales de entrada discretas</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                <div>
+                    <label style="color:var(--text-muted);font-size:0.9rem;margin-bottom:0.5rem;display:block;">Señal x₁[n]:</label>
+                    <div class="signal-grid" id="sig1-disc-selector">
+                        <div class="signal-option selected" onclick="selectSignalDisc(1,'sin')">sen[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(1,'cos')">cos[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(1,'exp')">aⁿ·u[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(1,'impulse')">δ[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(1,'step')">u[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(1,'ramp')">r[n]</div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color:var(--text-muted);font-size:0.9rem;margin-bottom:0.5rem;display:block;">Señal x₂[n]:</label>
+                    <div class="signal-grid" id="sig2-disc-selector">
+                        <div class="signal-option" onclick="selectSignalDisc(2,'sin')">sen[n]</div>
+                        <div class="signal-option selected" onclick="selectSignalDisc(2,'cos')">cos[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(2,'exp')">aⁿ·u[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(2,'impulse')">δ[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(2,'step')">u[n]</div>
+                        <div class="signal-option" onclick="selectSignalDisc(2,'ramp')">r[n]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. SUMA DISCRETA -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(34,197,94,0.2);color:#22c55e;">+</span> Suma de Señales <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">La suma de dos señales discretas se obtiene sumando muestra a muestra los valores en cada índice n.</p>
+            <div class="math-box">$$y[n] = x_1[n] + x_2[n]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud A₁: <span class="value-display" id="val-a1-sum-d">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a1-sum-d" oninput="updateDiscOp('suma')">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud A₂: <span class="value-display" id="val-a2-sum-d">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a2-sum-d" oninput="updateDiscOp('suma')">
+                </div>
+                <div class="control-group">
+                    <label>Frecuencia Ω₁: <span class="value-display" id="val-w1-sum-d">0.3</span></label>
+                    <input type="range" min="0.1" max="3.14" step="0.05" value="0.3" id="w1-sum-d" oninput="updateDiscOp('suma')">
+                </div>
+                <div class="control-group">
+                    <label>Frecuencia Ω₂: <span class="value-display" id="val-w2-sum-d">0.3</span></label>
+                    <input type="range" min="0.1" max="3.14" step="0.05" value="0.3" id="w2-sum-d" oninput="updateDiscOp('suma')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-suma-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = x₁[n] + x₂[n]</div>
+                    <div id="plot-suma-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. RESTA DISCRETA -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(239,68,68,0.2);color:#ef4444;">−</span> Resta de Señales <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">La resta muestra a muestra de dos señales discretas.</p>
+            <div class="math-box">$$y[n] = x_1[n] - x_2[n]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud A₁: <span class="value-display" id="val-a1-res-d">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a1-res-d" oninput="updateDiscOp('resta')">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud A₂: <span class="value-display" id="val-a2-res-d">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a2-res-d" oninput="updateDiscOp('resta')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-resta-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = x₁[n] − x₂[n]</div>
+                    <div id="plot-resta-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. MULTIPLICACIÓN DISCRETA -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(168,85,247,0.2);color:#a855f7;">×</span> Multiplicación de Señales <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">El producto muestra a muestra de dos señales discretas. Se usa en ventaneo y modulación digital.</p>
+            <div class="math-box">$$y[n] = x_1[n] \cdot x_2[n]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud A₁: <span class="value-display" id="val-a1-mul-d">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a1-mul-d" oninput="updateDiscOp('mult')">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud A₂: <span class="value-display" id="val-a2-mul-d">1.0</span></label>
+                    <input type="range" min="0.1" max="3" step="0.1" value="1" id="a2-mul-d" oninput="updateDiscOp('mult')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-mult-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = x₁[n] · x₂[n]</div>
+                    <div id="plot-mult-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ESCALAMIENTO DISCRETO -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(6,182,212,0.2);color:#06b6d4;">↕</span> Escalamiento en Amplitud <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">Multiplica cada muestra por una constante A. Si A &lt; 0, además invierte la señal.</p>
+            <div class="math-box">$$y[n] = A \cdot x[n]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Factor de Escala A: <span class="value-display" id="val-A-esc-d">2.0</span></label>
+                    <input type="range" min="-3" max="3" step="0.1" value="2" id="A-esc-d" oninput="updateDiscOp('escala')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x[n]</div>
+                    <div id="plot-escala-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = A·x[n]</div>
+                    <div id="plot-escala-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. DESPLAZAMIENTO DISCRETO -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(245,158,11,0.2);color:#f59e0b;">↔</span> Desplazamiento Temporal <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">Desplaza la señal discreta n₀ posiciones. Positivo = retraso, negativo = adelanto.</p>
+            <div class="math-box">$$y[n] = x[n - n_0]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Desplazamiento n₀: <span class="value-display" id="val-n0-desp-d">3</span></label>
+                    <input type="range" min="-10" max="10" step="1" value="3" id="n0-desp-d" oninput="updateDiscOp('desp')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x[n]</div>
+                    <div id="plot-desp-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = x[n − n₀]</div>
+                    <div id="plot-desp-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. REFLEXIÓN DISCRETA -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(236,72,153,0.2);color:#ec4899;">⟷</span> Reflexión Temporal <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">Invierte la secuencia respecto a n=0, creando la imagen espejo de la señal discreta.</p>
+            <div class="math-box">$$y[n] = x[-n]$$</div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x[n]</div>
+                    <div id="plot-ref-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = x[−n]</div>
+                    <div id="plot-ref-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. DIEZMADO / SUBMUESTREO -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(16,185,129,0.2);color:#10b981;">⇔</span> Diezmado (Submuestreo) <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">Toma cada M-ésima muestra de la señal, reduciendo la tasa de muestreo.</p>
+            <div class="math-box">$$y[n] = x[M \cdot n]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Factor de diezmado M: <span class="value-display" id="val-M-dz-d">2</span></label>
+                    <input type="range" min="2" max="5" step="1" value="2" id="M-dz-d" oninput="updateDiscOp('diezmado')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señal Original x[n]</div>
+                    <div id="plot-diezm-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = x[M·n]</div>
+                    <div id="plot-diezm-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. CONVOLUCIÓN DISCRETA -->
+        <div class="op-card">
+            <h2><span class="icon" style="background:rgba(99,102,241,0.2);color:#6366f1;">∗</span> Convolución Discreta <span class="badge badge-disc">Discreta</span></h2>
+            <p class="description">La suma de convolución es la operación fundamental de los sistemas LTI discretos.</p>
+            <div class="math-box">$$y[n] = (x_1 * x_2)[n] = \sum_{k=-\infty}^{\infty} x_1[k] \cdot x_2[n - k]$$</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Señal 1:</label>
+                    <select id="conv-sig1-d" onchange="updateDiscOp('conv')">
+                        <option value="rect">Pulso Rectangular</option>
+                        <option value="exp">Exponencial aⁿu[n]</option>
+                        <option value="impulse">Impulso δ[n]</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Señal 2:</label>
+                    <select id="conv-sig2-d" onchange="updateDiscOp('conv')">
+                        <option value="rect" selected>Pulso Rectangular</option>
+                        <option value="exp">Exponencial aⁿu[n]</option>
+                        <option value="impulse">Impulso δ[n]</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Largo señal 1: <span class="value-display" id="val-L1-conv-d">5</span></label>
+                    <input type="range" min="2" max="10" step="1" value="5" id="L1-conv-d" oninput="updateDiscOp('conv')">
+                </div>
+                <div class="control-group">
+                    <label>Largo señal 2: <span class="value-display" id="val-L2-conv-d">5</span></label>
+                    <input type="range" min="2" max="10" step="1" value="5" id="L2-conv-d" oninput="updateDiscOp('conv')">
+                </div>
+            </div>
+            <div class="plots-row">
+                <div>
+                    <div class="plot-label">Señales de Entrada</div>
+                    <div id="plot-conv-disc-in" class="plot-container"></div>
+                </div>
+                <div>
+                    <div class="plot-label">Resultado: y[n] = (x₁ ∗ x₂)[n]</div>
+                    <div id="plot-conv-disc-out" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ====================== GLOBAL STATE ======================
+let contSig1 = 'sin', contSig2 = 'cos';
+let discSig1 = 'sin', discSig2 = 'cos';
+
+const plotLayout = {
+    paper_bgcolor: '#1e293b',
+    plot_bgcolor: '#0f172a',
+    font: { color: '#f1f5f9', family: 'Segoe UI, sans-serif', size: 12 },
+    margin: { t: 10, r: 20, b: 40, l: 45 },
+    height: 280,
+    xaxis: { gridcolor: '#334155', zerolinecolor: '#475569', title: '' },
+    yaxis: { gridcolor: '#334155', zerolinecolor: '#475569' },
+    legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center', bgcolor: 'transparent' },
+    showlegend: true
+};
+
+const plotConfig = { responsive: true, displayModeBar: false };
+
+// ====================== SIGNAL GENERATORS (CONTINUOUS) ======================
+function genContSignal(type, t, A=1, w=1) {
+    return t.map(ti => {
+        switch(type) {
+            case 'sin': return A * Math.sin(w * ti);
+            case 'cos': return A * Math.cos(w * ti);
+            case 'exp': return ti >= 0 ? A * Math.exp(-ti) : 0;
+            case 'rect': return Math.abs(ti) <= 0.5 ? A : 0;
+            case 'tri': return Math.abs(ti) <= 1 ? A * (1 - Math.abs(ti)) : 0;
+            case 'step': return ti >= 0 ? A : 0;
+            default: return 0;
+        }
+    });
+}
+
+function genContSignalShifted(type, t, A=1, w=1, shift=0) {
+    return t.map(ti => {
+        const ts = ti - shift;
+        switch(type) {
+            case 'sin': return A * Math.sin(w * ts);
+            case 'cos': return A * Math.cos(w * ts);
+            case 'exp': return ts >= 0 ? A * Math.exp(-ts) : 0;
+            case 'rect': return Math.abs(ts) <= 0.5 ? A : 0;
+            case 'tri': return Math.abs(ts) <= 1 ? A * (1 - Math.abs(ts)) : 0;
+            case 'step': return ts >= 0 ? A : 0;
+            default: return 0;
+        }
+    });
+}
+
+function genContSignalScaled(type, t, A=1, w=1, a=1) {
+    return t.map(ti => {
+        const ts = a * ti;
+        switch(type) {
+            case 'sin': return A * Math.sin(w * ts);
+            case 'cos': return A * Math.cos(w * ts);
+            case 'exp': return ts >= 0 ? A * Math.exp(-ts) : 0;
+            case 'rect': return Math.abs(ts) <= 0.5 ? A : 0;
+            case 'tri': return Math.abs(ts) <= 1 ? A * (1 - Math.abs(ts)) : 0;
+            case 'step': return ts >= 0 ? A : 0;
+            default: return 0;
+        }
+    });
+}
+
+// Convolution signal generators
+function genConvSignal(type, t, width=1) {
+    return t.map(ti => {
+        switch(type) {
+            case 'rect': return (ti >= 0 && ti <= width) ? 1 : 0;
+            case 'tri': return (ti >= 0 && ti <= width) ? (1 - ti/width) : 0;
+            case 'exp': return ti >= 0 ? Math.exp(-ti/width) : 0;
+            default: return 0;
+        }
+    });
+}
+
+// Numerical convolution
+function convolve(x1, x2, dt) {
+    const N = x1.length + x2.length - 1;
+    const y = new Array(N).fill(0);
+    for (let i = 0; i < x1.length; i++) {
+        for (let j = 0; j < x2.length; j++) {
+            y[i + j] += x1[i] * x2[j] * dt;
+        }
+    }
+    return y;
+}
+
+// ====================== SIGNAL GENERATORS (DISCRETE) ======================
+function genDiscSignal(type, n, A=1, w=0.3, a=0.8) {
+    return n.map(ni => {
+        switch(type) {
+            case 'sin': return A * Math.sin(w * ni);
+            case 'cos': return A * Math.cos(w * ni);
+            case 'exp': return ni >= 0 ? A * Math.pow(a, ni) : 0;
+            case 'impulse': return ni === 0 ? A : 0;
+            case 'step': return ni >= 0 ? A : 0;
+            case 'ramp': return ni >= 0 ? A * ni : 0;
+            default: return 0;
+        }
+    });
+}
+
+// Discrete convolution
+function discreteConvolve(x1, x2) {
+    const N = x1.length + x2.length - 1;
+    const y = new Array(N).fill(0);
+    for (let i = 0; i < x1.length; i++) {
+        for (let j = 0; j < x2.length; j++) {
+            y[i + j] += x1[i] * x2[j];
+        }
+    }
+    return y;
+}
+
+function genDiscConvSignal(type, n, L=5) {
+    return n.map(ni => {
+        switch(type) {
+            case 'rect': return (ni >= 0 && ni < L) ? 1 : 0;
+            case 'exp': return ni >= 0 ? Math.pow(0.8, ni) * (ni < L ? 1 : 0) : 0;
+            case 'impulse': return ni === 0 ? 1 : 0;
+            default: return 0;
+        }
+    });
+}
+
+// ====================== TAB SWITCHING ======================
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.target.classList.add('active');
+    if (tab === 'continuas') updateAllCont();
+    else updateAllDisc();
+}
+
+// ====================== SIGNAL SELECTION ======================
+function selectSignalCont(num, type) {
+    if (num === 1) contSig1 = type;
+    else contSig2 = type;
+    const container = document.getElementById('sig' + num + '-cont-selector');
+    container.querySelectorAll('.signal-option').forEach(o => o.classList.remove('selected'));
+    event.target.classList.add('selected');
+    updateAllCont();
+}
+
+function selectSignalDisc(num, type) {
+    if (num === 1) discSig1 = type;
+    else discSig2 = type;
+    const container = document.getElementById('sig' + num + '-disc-selector');
+    container.querySelectorAll('.signal-option').forEach(o => o.classList.remove('selected'));
+    event.target.classList.add('selected');
+    updateAllDisc();
+}
+
+// ====================== CONTINUOUS OPERATIONS ======================
+function updateContOp(op) {
+    const t = [];
+    for (let i = -8; i <= 8; i += 0.02) t.push(i);
+
+    const traceStyle1 = { line: { color: '#06b6d4', width: 2 } };
+    const traceStyle2 = { line: { color: '#f59e0b', width: 2 } };
+    const traceResult = { line: { color: '#22c55e', width: 2.5 } };
+
+    switch(op) {
+        case 'suma': {
+            const A1 = parseFloat(document.getElementById('a1-sum-c').value);
+            const A2 = parseFloat(document.getElementById('a2-sum-c').value);
+            const w1 = parseFloat(document.getElementById('w1-sum-c').value);
+            const w2 = parseFloat(document.getElementById('w2-sum-c').value);
+            document.getElementById('val-a1-sum-c').textContent = A1.toFixed(1);
+            document.getElementById('val-a2-sum-c').textContent = A2.toFixed(1);
+            document.getElementById('val-w1-sum-c').textContent = w1.toFixed(1);
+            document.getElementById('val-w2-sum-c').textContent = w2.toFixed(1);
+            const y1 = genContSignal(contSig1, t, A1, w1);
+            const y2 = genContSignal(contSig2, t, A2, w2);
+            const ySum = y1.map((v, i) => v + y2[i]);
+            Plotly.react('plot-suma-cont-in', [
+                { x: t, y: y1, name: 'x₁(t)', ...traceStyle1 },
+                { x: t, y: y2, name: 'x₂(t)', ...traceStyle2 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-suma-cont-out', [
+                { x: t, y: ySum, name: 'y(t)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'resta': {
+            const A1 = parseFloat(document.getElementById('a1-res-c').value);
+            const A2 = parseFloat(document.getElementById('a2-res-c').value);
+            document.getElementById('val-a1-res-c').textContent = A1.toFixed(1);
+            document.getElementById('val-a2-res-c').textContent = A2.toFixed(1);
+            const y1 = genContSignal(contSig1, t, A1);
+            const y2 = genContSignal(contSig2, t, A2);
+            const yRes = y1.map((v, i) => v - y2[i]);
+            Plotly.react('plot-resta-cont-in', [
+                { x: t, y: y1, name: 'x₁(t)', ...traceStyle1 },
+                { x: t, y: y2, name: 'x₂(t)', ...traceStyle2 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-resta-cont-out', [
+                { x: t, y: yRes, name: 'y(t)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'mult': {
+            const A1 = parseFloat(document.getElementById('a1-mul-c').value);
+            const A2 = parseFloat(document.getElementById('a2-mul-c').value);
+            document.getElementById('val-a1-mul-c').textContent = A1.toFixed(1);
+            document.getElementById('val-a2-mul-c').textContent = A2.toFixed(1);
+            const y1 = genContSignal(contSig1, t, A1);
+            const y2 = genContSignal(contSig2, t, A2);
+            const yMul = y1.map((v, i) => v * y2[i]);
+            Plotly.react('plot-mult-cont-in', [
+                { x: t, y: y1, name: 'x₁(t)', ...traceStyle1 },
+                { x: t, y: y2, name: 'x₂(t)', ...traceStyle2 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-mult-cont-out', [
+                { x: t, y: yMul, name: 'y(t)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'escala': {
+            const A = parseFloat(document.getElementById('A-esc-c').value);
+            document.getElementById('val-A-esc-c').textContent = A.toFixed(1);
+            const y1 = genContSignal(contSig1, t);
+            const yEsc = y1.map(v => A * v);
+            Plotly.react('plot-escala-cont-in', [
+                { x: t, y: y1, name: 'x(t)', ...traceStyle1 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-escala-cont-out', [
+                { x: t, y: yEsc, name: 'y(t) = ' + A.toFixed(1) + '·x(t)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'desp': {
+            const t0 = parseFloat(document.getElementById('t0-desp-c').value);
+            document.getElementById('val-t0-desp-c').textContent = t0.toFixed(1);
+            const y1 = genContSignal(contSig1, t);
+            const yDesp = genContSignalShifted(contSig1, t, 1, 1, t0);
+            Plotly.react('plot-desp-cont-in', [
+                { x: t, y: y1, name: 'x(t)', ...traceStyle1 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-desp-cont-out', [
+                { x: t, y: y1, name: 'x(t)', line: { color: '#06b6d4', width: 1, dash: 'dot' } },
+                { x: t, y: yDesp, name: 'x(t−' + t0.toFixed(1) + ')', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'ref': {
+            const y1 = genContSignal(contSig1, t);
+            const tNeg = t.map(ti => -ti);
+            const yRef = genContSignal(contSig1, tNeg);
+            Plotly.react('plot-ref-cont-in', [
+                { x: t, y: y1, name: 'x(t)', ...traceStyle1 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-ref-cont-out', [
+                { x: t, y: y1, name: 'x(t)', line: { color: '#06b6d4', width: 1, dash: 'dot' } },
+                { x: t, y: yRef, name: 'x(−t)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'tscale': {
+            const a = parseFloat(document.getElementById('a-tsc-c').value);
+            document.getElementById('val-a-tsc-c').textContent = a.toFixed(1);
+            const y1 = genContSignal(contSig1, t);
+            const yScaled = genContSignalScaled(contSig1, t, 1, 1, a);
+            Plotly.react('plot-tscale-cont-in', [
+                { x: t, y: y1, name: 'x(t)', ...traceStyle1 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-tscale-cont-out', [
+                { x: t, y: y1, name: 'x(t)', line: { color: '#06b6d4', width: 1, dash: 'dot' } },
+                { x: t, y: yScaled, name: 'x(' + a.toFixed(1) + 't)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            break;
+        }
+        case 'conv': {
+            const sig1Type = document.getElementById('conv-sig1').value;
+            const sig2Type = document.getElementById('conv-sig2').value;
+            const w1 = parseFloat(document.getElementById('w1-conv-c').value);
+            const w2 = parseFloat(document.getElementById('w2-conv-c').value);
+            document.getElementById('val-w1-conv-c').textContent = w1.toFixed(1);
+            document.getElementById('val-w2-conv-c').textContent = w2.toFixed(1);
+            const dt = 0.02;
+            const tc = [];
+            for (let i = -2; i <= 6; i += dt) tc.push(i);
+            const y1 = genConvSignal(sig1Type, tc, w1);
+            const y2 = genConvSignal(sig2Type, tc, w2);
+            const yConv = convolve(y1, y2, dt);
+            const tConv = [];
+            for (let i = 0; i < yConv.length; i++) tConv.push(-2 + (-2) + i * dt);
+            Plotly.react('plot-conv-cont-in', [
+                { x: tc, y: y1, name: 'x₁(t)', ...traceStyle1 },
+                { x: tc, y: y2, name: 'x₂(t)', ...traceStyle2 }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't' } }, plotConfig);
+            Plotly.react('plot-conv-cont-out', [
+                { x: tConv, y: yConv, name: '(x₁∗x₂)(t)', ...traceResult }
+            ], { ...plotLayout, xaxis: { ...plotLayout.xaxis, title: 't', range: [-3, 10] } }, plotConfig);
+            break;
+        }
+    }
+}
+
+function updateAllCont() {
+    ['suma', 'resta', 'mult', 'escala', 'desp', 'ref', 'tscale', 'conv'].forEach(op => updateContOp(op));
+}
+
+// ====================== DISCRETE OPERATIONS ======================
+function updateDiscOp(op) {
+    const n = [];
+    for (let i = -15; i <= 15; i++) n.push(i);
+
+    const stemStyle1 = { type: 'bar', marker: { color: '#06b6d4' }, width: 0.3 };
+    const stemStyle2 = { type: 'bar', marker: { color: '#f59e0b' }, width: 0.3 };
+    const stemResult = { type: 'bar', marker: { color: '#22c55e' }, width: 0.4 };
+
+    const discLayout = {
+        ...plotLayout,
+        bargap: 0.5,
+        barmode: 'group',
+        xaxis: { ...plotLayout.xaxis, title: 'n', dtick: 2 },
+    };
+
+    switch(op) {
+        case 'suma': {
+            const A1 = parseFloat(document.getElementById('a1-sum-d').value);
+            const A2 = parseFloat(document.getElementById('a2-sum-d').value);
+            const w1 = parseFloat(document.getElementById('w1-sum-d').value);
+            const w2 = parseFloat(document.getElementById('w2-sum-d').value);
+            document.getElementById('val-a1-sum-d').textContent = A1.toFixed(1);
+            document.getElementById('val-a2-sum-d').textContent = A2.toFixed(1);
+            document.getElementById('val-w1-sum-d').textContent = w1.toFixed(2);
+            document.getElementById('val-w2-sum-d').textContent = w2.toFixed(2);
+            const y1 = genDiscSignal(discSig1, n, A1, w1);
+            const y2 = genDiscSignal(discSig2, n, A2, w2);
+            const ySum = y1.map((v, i) => v + y2[i]);
+            Plotly.react('plot-suma-disc-in', [
+                { x: n, y: y1, name: 'x₁[n]', ...stemStyle1 },
+                { x: n, y: y2, name: 'x₂[n]', ...stemStyle2 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-suma-disc-out', [
+                { x: n, y: ySum, name: 'y[n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'resta': {
+            const A1 = parseFloat(document.getElementById('a1-res-d').value);
+            const A2 = parseFloat(document.getElementById('a2-res-d').value);
+            document.getElementById('val-a1-res-d').textContent = A1.toFixed(1);
+            document.getElementById('val-a2-res-d').textContent = A2.toFixed(1);
+            const y1 = genDiscSignal(discSig1, n, A1);
+            const y2 = genDiscSignal(discSig2, n, A2);
+            const yRes = y1.map((v, i) => v - y2[i]);
+            Plotly.react('plot-resta-disc-in', [
+                { x: n, y: y1, name: 'x₁[n]', ...stemStyle1 },
+                { x: n, y: y2, name: 'x₂[n]', ...stemStyle2 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-resta-disc-out', [
+                { x: n, y: yRes, name: 'y[n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'mult': {
+            const A1 = parseFloat(document.getElementById('a1-mul-d').value);
+            const A2 = parseFloat(document.getElementById('a2-mul-d').value);
+            document.getElementById('val-a1-mul-d').textContent = A1.toFixed(1);
+            document.getElementById('val-a2-mul-d').textContent = A2.toFixed(1);
+            const y1 = genDiscSignal(discSig1, n, A1);
+            const y2 = genDiscSignal(discSig2, n, A2);
+            const yMul = y1.map((v, i) => v * y2[i]);
+            Plotly.react('plot-mult-disc-in', [
+                { x: n, y: y1, name: 'x₁[n]', ...stemStyle1 },
+                { x: n, y: y2, name: 'x₂[n]', ...stemStyle2 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-mult-disc-out', [
+                { x: n, y: yMul, name: 'y[n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'escala': {
+            const A = parseFloat(document.getElementById('A-esc-d').value);
+            document.getElementById('val-A-esc-d').textContent = A.toFixed(1);
+            const y1 = genDiscSignal(discSig1, n);
+            const yEsc = y1.map(v => A * v);
+            Plotly.react('plot-escala-disc-in', [
+                { x: n, y: y1, name: 'x[n]', ...stemStyle1 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-escala-disc-out', [
+                { x: n, y: yEsc, name: 'y[n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'desp': {
+            const n0 = parseInt(document.getElementById('n0-desp-d').value);
+            document.getElementById('val-n0-desp-d').textContent = n0;
+            const y1 = genDiscSignal(discSig1, n);
+            const nShifted = n.map(ni => ni - n0);
+            const yDesp = genDiscSignal(discSig1, nShifted);
+            Plotly.react('plot-desp-disc-in', [
+                { x: n, y: y1, name: 'x[n]', ...stemStyle1 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-desp-disc-out', [
+                { x: n, y: yDesp, name: 'x[n−' + n0 + ']', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'ref': {
+            const y1 = genDiscSignal(discSig1, n);
+            const nNeg = n.map(ni => -ni);
+            const yRef = genDiscSignal(discSig1, nNeg);
+            Plotly.react('plot-ref-disc-in', [
+                { x: n, y: y1, name: 'x[n]', ...stemStyle1 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-ref-disc-out', [
+                { x: n, y: yRef, name: 'x[−n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'diezmado': {
+            const M = parseInt(document.getElementById('M-dz-d').value);
+            document.getElementById('val-M-dz-d').textContent = M;
+            const y1 = genDiscSignal(discSig1, n);
+            const nOut = [];
+            const yDz = [];
+            for (let i = -15; i <= 15; i++) {
+                nOut.push(i);
+                const idx = n.indexOf(M * i);
+                yDz.push(idx >= 0 ? y1[idx] : 0);
+            }
+            Plotly.react('plot-diezm-disc-in', [
+                { x: n, y: y1, name: 'x[n]', ...stemStyle1 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-diezm-disc-out', [
+                { x: nOut, y: yDz, name: 'x[' + M + 'n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+        case 'conv': {
+            const sig1Type = document.getElementById('conv-sig1-d').value;
+            const sig2Type = document.getElementById('conv-sig2-d').value;
+            const L1 = parseInt(document.getElementById('L1-conv-d').value);
+            const L2 = parseInt(document.getElementById('L2-conv-d').value);
+            document.getElementById('val-L1-conv-d').textContent = L1;
+            document.getElementById('val-L2-conv-d').textContent = L2;
+            const nc = [];
+            for (let i = 0; i < Math.max(L1, L2) + 5; i++) nc.push(i);
+            const y1 = genDiscConvSignal(sig1Type, nc, L1);
+            const y2 = genDiscConvSignal(sig2Type, nc, L2);
+            // Trim to actual length for convolution
+            const y1t = y1.slice(0, L1 + 2);
+            const y2t = y2.slice(0, L2 + 2);
+            const yConv = discreteConvolve(y1t, y2t);
+            const nConv = [];
+            for (let i = 0; i < yConv.length; i++) nConv.push(i);
+            Plotly.react('plot-conv-disc-in', [
+                { x: nc, y: y1, name: 'x₁[n]', ...stemStyle1 },
+                { x: nc, y: y2, name: 'x₂[n]', ...stemStyle2 }
+            ], discLayout, plotConfig);
+            Plotly.react('plot-conv-disc-out', [
+                { x: nConv, y: yConv, name: '(x₁∗x₂)[n]', ...stemResult }
+            ], discLayout, plotConfig);
+            break;
+        }
+    }
+}
+
+function updateAllDisc() {
+    ['suma', 'resta', 'mult', 'escala', 'desp', 'ref', 'diezmado', 'conv'].forEach(op => updateDiscOp(op));
+}
+
+// ====================== INIT ======================
+window.addEventListener('load', () => {
+    renderMathInElement(document.body, {
+        delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+        ]
+    });
+    updateAllCont();
+});
+</script>
+
+</body>
+</html>
